@@ -40,7 +40,7 @@ const TAU = Math.PI * 2;
 
 /* Developer/Tester Tools toggle. Set to false in a release build to hide the
    Dev Tools panel and disable every dev shortcut / API. */
-const DEV_TOOLS_ENABLED = true;
+const DEV_TOOLS_ENABLED = false;
 
 /* Developer test state. Keeps per-character baselines so that test unlocks
    never corrupt the ordinary save file. When an unlock is active for a
@@ -50,6 +50,20 @@ const DEV = {
   baselines: {} // charId -> { bossKills, learned, loadout }
 };
 
+/* localStorage fallback — window.storage is not available in normal browsers */
+if (!window.storage && window.localStorage) {
+  window.storage = {
+    get(k) {
+      try { return Promise.resolve({ value: localStorage.getItem(k) }); }
+      catch (e) { return Promise.reject(e); }
+    },
+    set(k, v) {
+      try { localStorage.setItem(k, v); return Promise.resolve(); }
+      catch (e) { return Promise.reject(e); }
+    }
+  };
+}
+  
 /* ----------------------------- 1. Math & utilities ----------------------------- */
 function clamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
 function lerp(a, b, t){ return a + (b - a) * t; }
@@ -1722,6 +1736,7 @@ function giveXP(n){
   const P = G.player; if(!P) return;
   P.xp += Math.round(n);
   while(P.xp >= xpNeed(P.lvl)){
+    if (P.lvl !== startLvl) saveGame();
     P.xp -= xpNeed(P.lvl); P.lvl++; P.statPts += 3; P.sp++;
     calcStats(P); P.hp = P.stats.maxHP; P.mp = P.stats.maxMP;
     addFx({ type: 'ring', x: P.x, y: P.y, r: 4, max: 50, t: 0, dur: 0.7, color: '#ffd23c' });
@@ -4188,6 +4203,8 @@ function renderMapSelect(){
     if(locked){
       txt('Locked', cx2 + cardW / 2, cy2 + 118, { a: 'center', s: 10, b: true, c: '#a05a5a' });
       txt(`Defeat ${BOSS_DEFS[zd.req].name}`, cx2 + cardW / 2, cy2 + 132, { a: 'center', s: 9, c: '#7a5a5a' });
+    } else if(G.bossKills[zd.boss]){
+      txt('✓ Boss defeated', cx2 + cardW / 2, cy2 + 122, { a: 'center', s: 11, b: true, c: '#7ce08a' });
     } else if(recommended){
       txt('Recommended', cx2 + cardW / 2, cy2 + 122, { a: 'center', s: 11, b: true, c: '#7ce08a' });
     } else {
@@ -5017,6 +5034,10 @@ function render(){
     txt(G.tip.msg, W / 2, 79, { a: 'center', bl: 'middle', s: 14, b: true, c: G.tip.color });
     ctx.globalAlpha = 1;
   }
+  const hot = G.uiBtns.some(b => !b.disabled
+    && Mouse.x >= b.x && Mouse.x <= b.x + b.w
+    && Mouse.y >= b.y && Mouse.y <= b.y + b.h);
+  canvas.style.cursor = hot ? 'pointer' : 'crosshair';
   renderFade();
 }
 
