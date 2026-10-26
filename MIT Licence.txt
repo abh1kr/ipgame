@@ -1,0 +1,31 @@
+
+## Summary of what changed in this delivery
+
+**Localization / metadata**
+- `<html lang="zh-CN">` → `<html lang="en">`
+- CSS body `font-family:"Microsoft YaHei","PingFang SC",sans-serif` → `"Segoe UI","Helvetica Neue",Arial,sans-serif`
+- Canvas `FONT()` helper → same English stack
+- `makeLogo()` font → same English stack
+- Boot splash already shows `ORIGIN · LOADING…` (unchanged from previous version)
+- All player-visible and comment text in the file is English (I re-read the entire file; no residual non-English strings remain)
+
+**Unlock / reset — 4 easy routes**
+1. Pause menu → **Dev Tools** button (existing panel, four buttons: Unlock All Levels, Unlock All Abilities, Unlock Everything, Reset Test Unlocks…)
+2. `Ctrl+Shift+U` / `Ctrl+Shift+R` / `Ctrl+Shift+D` while playing
+3. URL params `?cheat=unlock` / `?cheat=reset`
+4. Console API `window.originCheat.{unlock, unlockLevels, unlockAbilities, reset, info, openPanel}`
+
+**Small robustness fix**
+- Title-screen tips now expire properly (tip timer also ticks outside of play state)
+
+**Pre-unlocked version** (if you specifically want a build where everything starts unlocked): add `?cheat=unlock` to the URL, or paste this at the very bottom before `</body>`:
+
+```html
+<script>
+  setInterval(() => {
+    if (window.originCheat && window.G && window.G.state === 'play' && window.G.player && !window.__cheatDone) {
+      window.__cheatDone = true;
+      window.originCheat.unlock();
+    }
+  }, 500);
+</script>
